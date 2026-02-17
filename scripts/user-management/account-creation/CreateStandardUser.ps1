@@ -13,10 +13,10 @@
     Requires Admin: Yes
 #>
 
-# BEPOZCore module is already imported by launcher
-# All functions are available: Write-BEPOZLog, Invoke-BEPOZDatabaseQuery, etc.
+# Bepoz modules are already imported by launcher
+# Available: Write-BepozLog, Invoke-BepozQuery, BepozUI dialogs, etc.
 
-Write-BEPOZLog -Message "=== Create Standard User Script Started ===" -Level Info
+Write-BepozLog -Message "=== Create Standard User Script Started ===" -Level INFO
 
 try {
     # Prompt for user details
@@ -38,14 +38,14 @@ try {
         throw "All fields are required"
     }
 
-    Write-BEPOZLog -Message "Creating user: $username ($firstName $lastName)" -Level Info
+    Write-BepozLog -Message "Creating user: $username ($firstName $lastName)" -Level INFO
 
     # Check if user already exists in database
     Write-Host ""
     Write-Host "Checking if user already exists..." -ForegroundColor Yellow
 
     $checkQuery = "SELECT COUNT(*) as UserCount FROM Users WHERE Username = @Username OR EmployeeId = @EmployeeId"
-    $checkResult = Invoke-BEPOZDatabaseQuery -Query $checkQuery -Parameters @{
+    $checkResult = Invoke-BepozQuery -Query $checkQuery -Parameters @{
         Username = $username
         EmployeeId = $employeeId
     }
@@ -75,12 +75,12 @@ try {
                       -ErrorAction Stop
 
         Write-Host "Windows account created successfully." -ForegroundColor Green
-        Write-BEPOZLog -Message "Windows account created: $username" -Level Success
+        Write-BepozLog -Message "Windows account created: $username" -Level SUCCESS
     }
     catch {
         if ($_.Exception.Message -like "*already exists*") {
             Write-Host "Windows account already exists. Continuing with database setup..." -ForegroundColor Yellow
-            Write-BEPOZLog -Message "Windows account already exists: $username" -Level Warning
+            Write-BepozLog -Message "Windows account already exists: $username" -Level WARN
         }
         else {
             throw "Failed to create Windows account: $_"
@@ -92,7 +92,7 @@ try {
         Add-LocalGroupMember -Group "Users" -Member $username -ErrorAction SilentlyContinue
     }
     catch {
-        Write-BEPOZLog -Message "User already in Users group or group operation failed: $_" -Level Warning
+        Write-BepozLog -Message "User already in Users group or group operation failed: $_" -Level WARN
     }
 
     # Insert user into BEPOZ database
@@ -103,7 +103,7 @@ INSERT INTO Users (Username, FirstName, LastName, EmployeeId, AccountType, Statu
 VALUES (@Username, @FirstName, @LastName, @EmployeeId, 'Standard', 'Active', GETDATE(), @CreatedBy)
 "@
 
-    Invoke-BEPOZDatabaseQuery -Query $insertQuery -Parameters @{
+    Invoke-BepozQuery -Query $insertQuery -Parameters @{
         Username = $username
         FirstName = $firstName
         LastName = $lastName
@@ -112,27 +112,32 @@ VALUES (@Username, @FirstName, @LastName, @EmployeeId, 'Standard', 'Active', GET
     }
 
     Write-Host "User added to database successfully." -ForegroundColor Green
-    Write-BEPOZLog -Message "User added to database: $username" -Level Success
+    Write-BepozLog -Message "User added to database: $username" -Level SUCCESS
 
     # Retrieve default configuration from registry
     Write-Host "Applying default user settings..." -ForegroundColor Yellow
 
     try {
-        $defaultHomeDrive = Get-BEPOZRegistryValue -Path "HKLM:\SOFTWARE\BEPOZ\Users" -Name "DefaultHomeDrive"
-        $defaultProfile = Get-BEPOZRegistryValue -Path "HKLM:\SOFTWARE\BEPOZ\Users" -Name "DefaultProfilePath"
+        $regPath = "HKLM:\SOFTWARE\BEPOZ\Users"
+        if (Test-Path $regPath) {
+            $defaultHomeDrive = (Get-ItemProperty -Path $regPath -Name "DefaultHomeDrive" -ErrorAction SilentlyContinue).DefaultHomeDrive
+            $defaultProfile = (Get-ItemProperty -Path $regPath -Name "DefaultProfilePath" -ErrorAction SilentlyContinue).DefaultProfilePath
 
-        Write-BEPOZLog -Message "Applied settings - Home Drive: $defaultHomeDrive, Profile: $defaultProfile" -Level Info
-        Write-Host "Default settings applied successfully." -ForegroundColor Green
+            Write-BepozLog -Message "Applied settings - Home Drive: $defaultHomeDrive, Profile: $defaultProfile" -Level INFO
+            Write-Host "Default settings applied successfully." -ForegroundColor Green
+        }
+        else {
+            Write-BepozLog -Message "Registry path not found: $regPath" -Level WARN
+            Write-Host "Warning: Could not apply some default settings (registry not configured)." -ForegroundColor Yellow
+        }
     }
     catch {
-        Write-BEPOZLog -Message "Could not retrieve default settings from registry: $_" -Level Warning
+        Write-BepozLog -Message "Could not retrieve default settings from registry: $_" -Level WARN
         Write-Host "Warning: Could not apply some default settings." -ForegroundColor Yellow
     }
 
     # Log audit trail
-    Write-BEPOZAudit -Action "User Account Created" `
-                     -Details "Standard user account created: $firstName $lastName (Employee ID: $employeeId)" `
-                     -TargetUser $username
+    Write-BepozLogAction -Action "User Account Created: $username ($firstName $lastName, Employee ID: $employeeId)"
 
     # Display summary
     Write-Host ""
@@ -154,15 +159,15 @@ VALUES (@Username, @FirstName, @LastName, @EmployeeId, 'Standard', 'Active', GET
     Write-Host "IMPORTANT: Save the password securely and provide to user." -ForegroundColor Red
     Write-Host ""
 
-    Write-BEPOZLog -Message "User creation completed successfully" -Level Success
+    Write-BepozLog -Message "User creation completed successfully" -Level SUCCESS
 }
 catch {
     Write-Host ""
     Write-Host "ERROR: User creation failed" -ForegroundColor Red
     Write-Host "Details: $_" -ForegroundColor Red
-    Write-BEPOZLog -Message "User creation failed: $_" -Level Error
-    Write-BEPOZLog -Message $_.ScriptStackTrace -Level Error
+    Write-BepozLog -Message "User creation failed: $_" -Level ERROR
+    Write-BepozLog -Message $_.ScriptStackTrace -Level ERROR
     throw
 }
 
-Write-BEPOZLog -Message "=== Create Standard User Script Ended ===" -Level Info
+Write-BepozLog -Message "=== Create Standard User Script Ended ===" -Level INFO

@@ -26,16 +26,50 @@ BEPOZ Deployment Framework - A self-updating PowerShell deployment system for IT
 
 Always test new scripts or changes in development branch before merging to main.
 
-## Core Components
+## Core Modules
 
-### BEPOZCore Module (`modules/BEPOZCore.psm1`)
-Provides six core functions available to all scripts:
-- `Get-BEPOZDatabaseConfig` - Retrieves DB config from registry
-- `New-BEPOZDatabaseConnection` - Creates SQL connection
-- `Invoke-BEPOZDatabaseQuery` - Executes parameterized SQL queries
-- `Get-BEPOZRegistryValue` - Reads Windows Registry values
-- `Write-BEPOZLog` - Writes formatted log entries (console + file)
-- `Write-BEPOZAudit` - Logs audit trail to database
+### BepozDbCore (`modules/BepozDbCore.ps1`)
+Production-ready database access with registry-based discovery.
+- **Registry**: `HKCU:\SOFTWARE\Backoffice` (SQL_Server, SQL_DSN)
+- **Functions**:
+  - `Get-BepozDatabaseConfig` - Retrieves DB config from registry
+  - `Get-BepozConnectionString` - Builds connection string
+  - `Invoke-BepozQuery` - Executes SELECT queries, returns DataTable
+  - `Invoke-BepozNonQuery` - Executes INSERT/UPDATE/DELETE, returns row count
+  - `Invoke-BepozStoredProc` - Executes stored procedures
+  - `Test-BepozDatabaseConnection` - Tests connectivity
+  - `Get-BepozDbInfo` - Comprehensive database information
+
+### BepozLogger (`modules/BepozLogger.ps1`)
+Centralized logging with automatic rotation and performance tracking.
+- **Log Location**: `C:\Bepoz\Toolkit\Logs\` (30-day retention)
+- **Functions**:
+  - `Initialize-BepozLogger` - Initializes logging for a tool
+  - `Write-BepozLog` - Writes log entries (INFO, WARN, ERROR, SUCCESS, ACTION, QUERY, PERF)
+  - `Write-BepozLogAction` - Logs user actions
+  - `Write-BepozLogQuery` - Logs SQL queries with performance metrics
+  - `Write-BepozLogPerformance` - Logs operation performance
+  - `Write-BepozLogError` - Logs errors with stack traces
+  - `Measure-BepozOperation` - Measures and logs operation timing
+
+### BepozTheme (`modules/BepozTheme.ps1`)
+Official Bepoz brand UI theming for Windows Forms.
+- **Colors**: Primary Blue (#002D6A), Dark Blue, Purple, Green, Gray, Light Blue
+- **Functions**: Create themed controls (buttons, panels, forms, grids, labels, textboxes)
+- **Key Functions**:
+  - `New-BepozForm`, `New-BepozButton`, `New-BepozPanel`
+  - `New-BepozDataGridView`, `New-BepozLabel`, `New-BepozTextBox`
+  - `Apply-BepozFormTheme` - Apply theme to entire form
+  - `Get-BepozColor`, `Get-BepozFont` - Color and font helpers
+
+### BepozUI (`modules/BepozUI.ps1`)
+Common Windows Forms UI helpers (reduces GUI code by 30-40%).
+- **Functions**:
+  - `Show-BepozProgressDialog`, `Update-BepozProgressDialog` - Progress indicators
+  - `Show-BepozInputDialog`, `Show-BepozNumberDialog`, `Show-BepozDropdownDialog` - Input dialogs
+  - `Show-BepozFilePicker`, `Show-BepozFolderPicker` - File/folder selection
+  - `Show-BepozConfirmDialog`, `Show-BepozMessageBox` - Confirmations and alerts
+  - `Show-BepozDataGrid` - Display DataTable in sortable grid
 
 ### Manifest (`manifest.json`)
 Central registry of all scripts with metadata. Structure:
@@ -45,7 +79,7 @@ Central registry of all scripts with metadata. Structure:
 
 ### Launcher (`launcher.ps1`)
 Parameters: `-GitHubPAT`, `-RepoOwner`, `-RepoName`, `-Branch`
-Execution flow: Download core module → Import module → Download manifest → Display menu → Execute selected script → Cleanup
+Execution flow: Download all modules (Logger, DbCore, Theme, UI) → Import in order → Initialize logger → Download manifest → Display menu → Execute selected script → Cleanup
 
 ## Required Script Structure
 
@@ -64,24 +98,24 @@ All scripts MUST follow this template:
     Requires Admin: Yes/No
 #>
 
-Write-BEPOZLog -Message "=== Script Name Started ===" -Level Info
+Write-BepozLog -Message "=== Script Name Started ===" -Level INFO
 
 try {
     # Script logic here
-    # BEPOZCore module already imported - all functions available
+    # Bepoz modules already imported - all functions available
 
-    Write-BEPOZLog -Message "Script completed successfully" -Level Success
+    Write-BepozLog -Message "Script completed successfully" -Level SUCCESS
 }
 catch {
     Write-Host ""
     Write-Host "ERROR: Script failed" -ForegroundColor Red
     Write-Host "Details: $_" -ForegroundColor Red
-    Write-BEPOZLog -Message "Script failed: $_" -Level Error
-    Write-BEPOZLog -Message $_.ScriptStackTrace -Level Error
+    Write-BepozLog -Message "Script failed: $_" -Level ERROR
+    Write-BepozLog -Message $_.ScriptStackTrace -Level ERROR
     throw
 }
 
-Write-BEPOZLog -Message "=== Script Name Ended ===" -Level Info
+Write-BepozLog -Message "=== Script Name Ended ===" -Level INFO
 ```
 
 ## Adding New Scripts
@@ -101,9 +135,9 @@ Write-BEPOZLog -Message "=== Script Name Ended ===" -Level Info
 
 ### Registry Paths (Expected by Scripts)
 ```
-HKLM:\SOFTWARE\BEPOZ\Database
-  - ServerName: SQL Server instance
-  - DatabaseName: BEPOZ database name
+HKCU:\SOFTWARE\Backoffice
+  - SQL_Server: SQL Server instance name
+  - SQL_DSN: BEPOZ database name
 
 HKLM:\SOFTWARE\BEPOZ\Network
   - DNSServer, DomainName, WorkgroupName
@@ -119,10 +153,12 @@ HKLM:\SOFTWARE\BEPOZ\Users
 
 ## Logging
 
-- **Location**: `C:\Logs\BEPOZDeployment\`
-- **Naming**: `YYYYMMDD_HHmmss_ScriptName.log`
-- **Format**: `[timestamp] [Level] [COMPUTER\user] message`
-- **Levels**: Info (white), Success (green), Warning (yellow), Error (red)
+- **Location**: `C:\Bepoz\Toolkit\Logs\`
+- **Naming**: `ToolName_YYYYMMDD.log`
+- **Format**: `[timestamp] [user] [LEVEL] message`
+- **Levels**: INFO, WARN, ERROR, SUCCESS, ACTION, QUERY, PERF
+- **Retention**: 30 days (automatic cleanup)
+- **Features**: Millisecond precision, performance tracking, query logging
 
 ## Testing Framework
 
@@ -131,10 +167,13 @@ Run launcher locally for testing:
 .\launcher.ps1 -GitHubPAT "ghp_xxxxx" -RepoOwner "YourOrg" -RepoName "BEPOZ-Scripts" -Branch "development"
 ```
 
-Test individual scripts by importing module manually:
+Test individual scripts by importing modules manually:
 ```powershell
-Import-Module .\modules\BEPOZCore.psm1
-$global:BEPOZLogFile = "C:\Logs\BEPOZDeployment\test.log"
+Import-Module .\modules\BepozLogger.ps1
+Import-Module .\modules\BepozDbCore.ps1
+Import-Module .\modules\BepozTheme.ps1
+Import-Module .\modules\BepozUI.ps1
+Initialize-BepozLogger -ToolName "TestScript"
 .\scripts\path-to-script.ps1
 ```
 
@@ -156,7 +195,10 @@ greco/
 ├── deploy-main.bat          # Production bootstrap (main branch)
 ├── deploy-dev.bat           # Development bootstrap (development branch)
 ├── modules/
-│   └── BEPOZCore.psm1      # Core utilities module
+│   ├── BepozDbCore.ps1     # Database access functions
+│   ├── BepozLogger.ps1     # Logging with rotation
+│   ├── BepozTheme.ps1      # UI theming (official colors)
+│   └── BepozUI.ps1         # UI helper dialogs
 ├── scripts/                 # Organized by category
 │   ├── user-management/
 │   │   ├── account-creation/
@@ -184,25 +226,42 @@ greco/
 ### Database Query with Parameters
 ```powershell
 $query = "SELECT * FROM Users WHERE Status = @Status"
-$results = Invoke-BEPOZDatabaseQuery -Query $query -Parameters @{ Status = "Active" }
+$results = Invoke-BepozQuery -Query $query -Parameters @{ Status = "Active" }
 foreach ($row in $results.Rows) {
     Write-Host $row.Username
 }
 ```
 
-### Registry Value Retrieval
+### Stored Procedure Execution
 ```powershell
-$value = Get-BEPOZRegistryValue -Path "HKLM:\SOFTWARE\BEPOZ\Config" -Name "Setting"
+$params = @{ "@VenueID" = 1 }
+$results = Invoke-BepozStoredProc -ProcedureName "dbo.GetVenueDetails" -Parameters $params
 ```
 
-### Audit Logging
+### Action Logging
 ```powershell
-Write-BEPOZAudit -Action "User Created" -Details "Standard user account" -TargetUser "jdoe"
+Write-BepozLogAction -Action "User created: jdoe"
+Write-BepozLogQuery -Query $sql -DurationMs 45 -RowCount 12
+```
+
+### UI Dialogs
+```powershell
+# Input dialog
+$name = Show-BepozInputDialog -Title "Name" -Prompt "Enter workstation name:"
+
+# Confirmation
+if (Show-BepozConfirmDialog -Title "Confirm" -Message "Delete records?") {
+    # User clicked Yes
+}
+
+# Data grid
+$data = Invoke-BepozQuery -Query "SELECT * FROM Venue"
+Show-BepozDataGrid -Title "Venues" -Data $data
 ```
 
 ## Troubleshooting
 
 - **"Failed to download launcher"**: Check internet, GitHub PAT validity, repo access
-- **"Cannot continue without core module"**: Verify `modules/BEPOZCore.psm1` exists
+- **"Cannot continue without module"**: Verify all 4 modules exist in `modules/` directory
 - **"Registry path not found"**: Ensure BEPOZ is installed and registry configured
 - **Logs**: Always check `C:\Logs\BEPOZDeployment\` for detailed error information

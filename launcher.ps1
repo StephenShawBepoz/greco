@@ -128,7 +128,7 @@ function Show-MainMenu {
         $selection = Read-Host "Select category (0-$($global:Manifest.categories.Count))"
 
         if ($selection -eq "0") {
-            Write-BEPOZLog -Message "User exited framework" -Level Info
+            Write-BepozLog -Message "User exited framework" -Level INFO
             return
         }
 
@@ -273,22 +273,22 @@ function Execute-Script {
 
     Write-Host "Downloading script from GitHub..." -ForegroundColor Cyan
 
-    # Create script-specific log file
-    $scriptLogFile = "$global:LogDir\$(Get-Date -Format 'yyyyMMdd_HHmmss')_$($Tool.name -replace '[^a-zA-Z0-9]', '').log"
-    $global:BEPOZLogFile = $scriptLogFile
+    # Initialize logger for this specific script
+    $scriptName = $Tool.name -replace '[^a-zA-Z0-9]', ''
+    $scriptLogFile = Initialize-BepozLogger -ToolName $scriptName
 
-    Write-BEPOZLog -Message "=== Script Execution Started ===" -Level Info
-    Write-BEPOZLog -Message "Script: $($Tool.name) v$($Tool.version)" -Level Info
-    Write-BEPOZLog -Message "Path: $($Tool.scriptPath)" -Level Info
-    Write-BEPOZLog -Message "User: $env:USERNAME" -Level Info
-    Write-BEPOZLog -Message "Computer: $env:COMPUTERNAME" -Level Info
+    Write-BepozLog -Message "=== Script Execution Started ===" -Level INFO
+    Write-BepozLog -Message "Script: $($Tool.name) v$($Tool.version)" -Level INFO
+    Write-BepozLog -Message "Path: $($Tool.scriptPath)" -Level INFO
+    Write-BepozLog -Message "User: $env:USERNAME" -Level INFO
+    Write-BepozLog -Message "Computer: $env:COMPUTERNAME" -Level INFO
 
     # Download script
     $scriptPath = "$global:TempDir\script_$(Get-Date -Format 'HHmmss').ps1"
     if (-not (Get-GitHubFile -FilePath $Tool.scriptPath -SavePath $scriptPath)) {
         Write-Host ""
         Write-Host "FAILED: Could not download script from GitHub" -ForegroundColor Red
-        Write-BEPOZLog -Message "Script download failed" -Level Error
+        Write-BepozLog -Message "Script download failed" -Level ERROR
         Write-Host ""
         Write-Host "Press any key to continue..." -ForegroundColor Yellow
         $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
@@ -311,8 +311,8 @@ function Execute-Script {
     }
     catch {
         $success = $false
-        Write-BEPOZLog -Message "Script execution error: $_" -Level Error
-        Write-BEPOZLog -Message $_.ScriptStackTrace -Level Error
+        Write-BepozLog -Message "Script execution error: $_" -Level ERROR
+        Write-BepozLog -Message $_.ScriptStackTrace -Level ERROR
         Write-Host ""
         Write-Host "ERROR: $_" -ForegroundColor Red
     }
@@ -325,15 +325,15 @@ function Execute-Script {
 
     if ($success) {
         Write-Host "COMPLETED SUCCESSFULLY" -ForegroundColor Green
-        Write-BEPOZLog -Message "Script completed successfully" -Level Success
+        Write-BepozLog -Message "Script completed successfully" -Level SUCCESS
     }
     else {
         Write-Host "COMPLETED WITH ERRORS" -ForegroundColor Red
-        Write-BEPOZLog -Message "Script completed with errors" -Level Error
+        Write-BepozLog -Message "Script completed with errors" -Level ERROR
     }
 
-    Write-BEPOZLog -Message "Duration: $($duration.TotalSeconds) seconds" -Level Info
-    Write-BEPOZLog -Message "=== Script Execution Ended ===" -Level Info
+    Write-BepozLog -Message "Duration: $($duration.TotalSeconds) seconds" -Level INFO
+    Write-BepozLog -Message "=== Script Execution Ended ===" -Level INFO
 
     Write-Host "Duration: $($duration.TotalSeconds) seconds" -ForegroundColor Gray
     Write-Host "Log file: $scriptLogFile" -ForegroundColor Gray
@@ -361,33 +361,70 @@ try {
     Write-Host "═══════════════════════════════════════════════════════════" -ForegroundColor Cyan
     Write-Host ""
 
-    # Download core module
-    Write-Host "[1/3] Downloading core utilities module..." -ForegroundColor Cyan
-    $coreModulePath = "$global:TempDir\BEPOZCore.psm1"
-    if (-not (Get-GitHubFile -FilePath "modules/BEPOZCore.psm1" -SavePath $coreModulePath)) {
-        Write-Host ""
-        Write-Host "FATAL: Cannot continue without core module" -ForegroundColor Red
+    # Download modules
+    Write-Host "[1/5] Downloading BepozLogger module..." -ForegroundColor Cyan
+    $loggerPath = "$global:TempDir\BepozLogger.ps1"
+    if (-not (Get-GitHubFile -FilePath "modules/BepozLogger.ps1" -SavePath $loggerPath)) {
+        Write-Host "      FATAL: Cannot continue without logger module" -ForegroundColor Red
         exit 1
     }
-    Write-Host "      Core module downloaded successfully." -ForegroundColor Green
+    Write-Host "      BepozLogger downloaded successfully." -ForegroundColor Green
 
-    # Import core module
-    Write-Host "[2/3] Importing core module..." -ForegroundColor Cyan
-    Import-Module $coreModulePath -Force -ErrorAction Stop
-    Write-Host "      Core module imported successfully." -ForegroundColor Green
+    Write-Host "[2/5] Downloading BepozDbCore module..." -ForegroundColor Cyan
+    $dbCorePath = "$global:TempDir\BepozDbCore.ps1"
+    if (-not (Get-GitHubFile -FilePath "modules/BepozDbCore.ps1" -SavePath $dbCorePath)) {
+        Write-Host "      FATAL: Cannot continue without database module" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "      BepozDbCore downloaded successfully." -ForegroundColor Green
 
-    # Now we can use Write-BEPOZLog
-    Write-BEPOZLog -Message "BEPOZ Deployment Framework started" -Level Info
-    Write-BEPOZLog -Message "Repository: $RepoOwner/$RepoName (branch: $Branch)" -Level Info
-    Write-BEPOZLog -Message "User: $env:USERNAME on $env:COMPUTERNAME" -Level Info
+    Write-Host "[3/5] Downloading BepozTheme module..." -ForegroundColor Cyan
+    $themePath = "$global:TempDir\BepozTheme.ps1"
+    if (-not (Get-GitHubFile -FilePath "modules/BepozTheme.ps1" -SavePath $themePath)) {
+        Write-Host "      FATAL: Cannot continue without theme module" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "      BepozTheme downloaded successfully." -ForegroundColor Green
+
+    Write-Host "[4/5] Downloading BepozUI module..." -ForegroundColor Cyan
+    $uiPath = "$global:TempDir\BepozUI.ps1"
+    if (-not (Get-GitHubFile -FilePath "modules/BepozUI.ps1" -SavePath $uiPath)) {
+        Write-Host "      FATAL: Cannot continue without UI module" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "      BepozUI downloaded successfully." -ForegroundColor Green
+
+    # Import modules in correct order (Logger first, then DbCore uses it)
+    Write-Host ""
+    Write-Host "Importing modules..." -ForegroundColor Cyan
+    Import-Module $loggerPath -Force -ErrorAction Stop
+    Write-Host "   ✓ BepozLogger imported" -ForegroundColor Green
+
+    Import-Module $dbCorePath -Force -ErrorAction Stop
+    Write-Host "   ✓ BepozDbCore imported" -ForegroundColor Green
+
+    Import-Module $themePath -Force -ErrorAction Stop
+    Write-Host "   ✓ BepozTheme imported" -ForegroundColor Green
+
+    Import-Module $uiPath -Force -ErrorAction Stop
+    Write-Host "   ✓ BepozUI imported" -ForegroundColor Green
+
+    # Initialize logger for this session
+    $logFile = Initialize-BepozLogger -ToolName "DeploymentFramework"
+    if ($logFile) {
+        Write-BepozLog -Message "BEPOZ Deployment Framework started" -Level INFO
+        Write-BepozLog -Message "Repository: $RepoOwner/$RepoName (branch: $Branch)" -Level INFO
+        Write-BepozLog -Message "User: $env:USERNAME on $env:COMPUTERNAME" -Level INFO
+    }
 
     # Download manifest
-    Write-Host "[3/3] Downloading script manifest..." -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "[5/5] Downloading script manifest..." -ForegroundColor Cyan
     $manifestPath = "$global:TempDir\manifest.json"
     if (-not (Get-GitHubFile -FilePath "manifest.json" -SavePath $manifestPath)) {
         Write-Host ""
         Write-Host "FATAL: Cannot continue without manifest" -ForegroundColor Red
-        Write-BEPOZLog -Message "Failed to download manifest" -Level Error
+        Write-BepozLog -Message "Failed to download manifest" -Level ERROR
         exit 1
     }
     Write-Host "      Manifest downloaded successfully." -ForegroundColor Green
@@ -395,14 +432,14 @@ try {
     # Parse manifest
     try {
         $global:Manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-        Write-BEPOZLog -Message "Manifest loaded: version $($global:Manifest.version)" -Level Info
-        Write-BEPOZLog -Message "Manifest contains $($global:Manifest.categories.Count) categories" -Level Info
+        Write-BepozLog -Message "Manifest loaded: version $($global:Manifest.version)" -Level INFO
+        Write-BepozLog -Message "Manifest contains $($global:Manifest.categories.Count) categories" -Level INFO
     }
     catch {
         Write-Host ""
         Write-Host "FATAL: Failed to parse manifest JSON" -ForegroundColor Red
         Write-Host "Details: $_" -ForegroundColor Red
-        Write-BEPOZLog -Message "Failed to parse manifest: $_" -Level Error
+        Write-BepozLog -Message "Failed to parse manifest: $_" -Level ERROR
         exit 1
     }
 
@@ -417,7 +454,7 @@ catch {
     Write-Host ""
     Write-Host "FATAL ERROR: $_" -ForegroundColor Red
     if ($global:BEPOZLogFile) {
-        Write-BEPOZLog -Message "Fatal error: $_" -Level Error
+        Write-BepozLog -Message "Fatal error: $_" -Level ERROR
     }
     exit 1
 }
@@ -428,7 +465,7 @@ finally {
     Remove-Item -Path $global:TempDir -Recurse -Force -ErrorAction SilentlyContinue
 
     if ($global:BEPOZLogFile) {
-        Write-BEPOZLog -Message "Framework session ended" -Level Info
+        Write-BepozLog -Message "Framework session ended" -Level INFO
     }
 
     Write-Host "Thank you for using BEPOZ Deployment Framework!" -ForegroundColor Green
