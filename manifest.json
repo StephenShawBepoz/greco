@@ -3,6 +3,26 @@
   "lastUpdated": "2026-02-17T00:00:00Z",
   "categories": [
     {
+      "name": "Operator Management",
+      "description": "Manage BEPOZ operators (users) and security groups",
+      "subcategories": [
+        {
+          "name": "Bulk Operations",
+          "tools": [
+            {
+              "name": "Bulk Add Operators",
+              "description": "Add multiple operators to a parent group from CSV file with auto-generated OpNumbers",
+              "scriptPath": "scripts/operator-management/BulkAddOperators.ps1",
+              "version": "1.0.0",
+              "lastUpdated": "2026-02-17T00:00:00Z",
+              "documentationUrl": "",
+              "requiresAdmin": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "User Management",
       "description": "User account creation, modification, and management",
       "subcategories": [
