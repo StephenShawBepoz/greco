@@ -1,0 +1,88 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2026-02-17T00:00:00Z",
+  "categories": [
+    {
+      "name": "User Management",
+      "description": "User account creation, modification, and management",
+      "subcategories": [
+        {
+          "name": "Account Creation",
+          "tools": [
+            {
+              "name": "Create Standard User",
+              "description": "Creates new standard user account with default permissions",
+              "scriptPath": "scripts/user-management/account-creation/CreateStandardUser.ps1",
+              "version": "1.0.0",
+              "lastUpdated": "2026-02-17T00:00:00Z",
+              "documentationUrl": "https://docs.bepoz.com/user-management/create-standard-user",
+              "requiresAdmin": true
+            },
+            {
+              "name": "Create Admin User",
+              "description": "Creates new administrative user account with elevated privileges",
+              "scriptPath": "scripts/user-management/account-creation/CreateAdminUser.ps1",
+              "version": "1.0.0",
+              "lastUpdated": "2026-02-17T00:00:00Z",
+              "documentationUrl": "https://docs.bepoz.com/user-management/create-admin-user",
+              "requiresAdmin": true
+            }
+          ]
+        },
+        {
+          "name": "Account Modification",
+          "tools": [
+            {
+              "name": "Reset User Password",
+              "description": "Resets password for existing user account",
+              "scriptPath": "scripts/user-management/account-modification/ResetPassword.ps1",
+              "version": "1.0.0",
+              "lastUpdated": "2026-02-17T00:00:00Z",
+              "documentationUrl": "https://docs.bepoz.com/user-management/reset-password",
+              "requiresAdmin": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System Configuration",
+      "description": "System setup and configuration tasks",
+      "tools": [
+        {
+          "name": "Configure Network Settings",
+          "description": "Sets up network configuration for BEPOZ environment",
+          "scriptPath": "scripts/system-configuration/ConfigureNetwork.ps1",
+          "version": "1.0.1",
+          "lastUpdated": "2026-02-17T00:00:00Z",
+          "documentationUrl": "https://docs.bepoz.com/system/network-config",
+          "requiresAdmin": true
+        },
+        {
+          "name": "Install Required Software",
+          "description": "Installs standard software packages for BEPOZ workstations",
+          "scriptPath": "scripts/system-configuration/InstallSoftware.ps1",
+          "version": "1.1.0",
+          "lastUpdated": "2026-02-17T00:00:00Z",
+          "documentationUrl": "https://docs.bepoz.com/system/software-install",
+          "requiresAdmin": true
+        }
+      ]
+    },
+    {
+      "name": "Reporting",
+      "description": "Generate reports and system information",
+      "tools": [
+        {
+          "name": "Generate Onboarding Report",
+          "description": "Creates comprehensive report of onboarding activities",
+          "scriptPath": "scripts/reporting/GenerateOnboardingReport.ps1",
+          "version": "1.0.0",
+          "lastUpdated": "2026-02-17T00:00:00Z",
+          "documentationUrl": "https://docs.bepoz.com/reporting/onboarding-report",
+          "requiresAdmin": false
+        }
+      ]
+    }
+  ]
+}
