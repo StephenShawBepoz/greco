@@ -12,12 +12,13 @@ REM ═════════════════════════�
 REM CONFIGURATION
 REM ═══════════════════════════════════════════════════════════════════════════
 
-REM GitHub Personal Access Token (requires 'repo' scope for private repositories)
-set GITHUB_PAT=ghp_PASTE_YOUR_TOKEN_HERE
+REM GitHub Personal Access Token (only needed for private repositories)
+REM Leave empty for public repositories
+set GITHUB_PAT=
 
 REM GitHub repository configuration
-set REPO_OWNER=YourOrg
-set REPO_NAME=BEPOZ-Scripts
+set REPO_OWNER=StephenShawBepoz
+set REPO_NAME=greco
 set BRANCH=main
 
 REM ═══════════════════════════════════════════════════════════════════════════
@@ -31,12 +32,12 @@ echo    Bootstrap Initializing...
 echo ═══════════════════════════════════════════════════════════════════════════
 echo.
 
-REM Validate configuration
+REM Validate configuration (PAT validation only if set)
 if "%GITHUB_PAT%"=="ghp_PASTE_YOUR_TOKEN_HERE" (
     echo ERROR: GitHub PAT not configured!
     echo.
     echo Please edit this BAT file and replace PASTE_YOUR_TOKEN_HERE with your
-    echo actual GitHub Personal Access Token.
+    echo actual GitHub Personal Access Token, or leave it empty for public repos.
     echo.
     pause
     exit /b 1
@@ -65,8 +66,8 @@ echo.
 set LAUNCHER_URL=https://api.github.com/repos/%REPO_OWNER%/%REPO_NAME%/contents/launcher.ps1?ref=%BRANCH%
 set LAUNCHER_PATH=%TEMP_DIR%\launcher.ps1
 
-REM Use PowerShell to download with authentication
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $ErrorActionPreference = 'Stop'; $headers = @{'Authorization'='token %GITHUB_PAT%'; 'Accept'='application/vnd.github.v3.raw'}; try { Write-Host '[POWERSHELL] Connecting to GitHub API (MAIN branch)...' -ForegroundColor Cyan; Invoke-WebRequest -Uri '%LAUNCHER_URL%' -Headers $headers -OutFile '%LAUNCHER_PATH%' -ErrorAction Stop; Write-Host '[POWERSHELL] Launcher downloaded successfully from MAIN.' -ForegroundColor Green; exit 0 } catch { Write-Host '[POWERSHELL] ERROR: Failed to download launcher' -ForegroundColor Red; Write-Host '[POWERSHELL] Details: ' -NoNewline -ForegroundColor Red; Write-Host $_.Exception.Message -ForegroundColor Yellow; exit 1 }}"
+REM Use PowerShell to download (with or without authentication based on PAT)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& { $ErrorActionPreference = 'Stop'; $headers = @{'Accept'='application/vnd.github.v3.raw'}; if ('%GITHUB_PAT%' -ne '') { $headers['Authorization'] = 'token %GITHUB_PAT%' }; try { Write-Host '[POWERSHELL] Connecting to GitHub API (MAIN branch)...' -ForegroundColor Cyan; Invoke-WebRequest -Uri '%LAUNCHER_URL%' -Headers $headers -OutFile '%LAUNCHER_PATH%' -ErrorAction Stop; Write-Host '[POWERSHELL] Launcher downloaded successfully from MAIN.' -ForegroundColor Green; exit 0 } catch { Write-Host '[POWERSHELL] ERROR: Failed to download launcher' -ForegroundColor Red; Write-Host '[POWERSHELL] Details: ' -NoNewline -ForegroundColor Red; Write-Host $_.Exception.Message -ForegroundColor Yellow; exit 1 }}"
 
 if errorlevel 1 (
     echo.

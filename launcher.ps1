@@ -28,14 +28,14 @@
 #>
 
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubPAT,
+    [Parameter(Mandatory=$false)]
+    [string]$GitHubPAT = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$RepoOwner = "YourOrg",
+    [string]$RepoOwner = "StephenShawBepoz",
 
     [Parameter(Mandatory=$false)]
-    [string]$RepoName = "BEPOZ-Scripts",
+    [string]$RepoName = "greco",
 
     [Parameter(Mandatory=$false)]
     [string]$Branch = "main"
@@ -73,8 +73,12 @@ function Get-GitHubFile {
 
     $url = "https://api.github.com/repos/$RepoOwner/$RepoName/contents/$FilePath`?ref=$Branch"
     $headers = @{
-        "Authorization" = "token $GitHubPAT"
         "Accept" = "application/vnd.github.v3.raw"
+    }
+
+    # Add authorization header only if PAT is provided (for private repos)
+    if (-not [string]::IsNullOrWhiteSpace($GitHubPAT)) {
+        $headers["Authorization"] = "token $GitHubPAT"
     }
 
     try {
