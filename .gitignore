@@ -1,9 +1,7 @@
 # BEPOZ Deployment Framework - Git Ignore
 
-# Deployment BAT files (contain GitHub PATs - keep local only)
-deploy-main.bat
-deploy-dev.bat
-deploy.bat
+# WARNING: deploy-main.bat and deploy-dev.bat contain placeholder PAT
+# DO NOT commit if you've added your real GitHub Personal Access Token!
 
 # Claude Code local settings
 .claude/
