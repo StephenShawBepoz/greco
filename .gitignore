@@ -1,0 +1,34 @@
+# BEPOZ Deployment Framework - Git Ignore
+
+# Deployment BAT files (contain GitHub PATs - keep local only)
+deploy-main.bat
+deploy-dev.bat
+deploy.bat
+
+# Claude Code local settings
+.claude/
+
+# Temporary exploration/testing scripts
+*-explore*.ps1
+*-wrapper*.ps1
+db-*.ps1
+get-*.ps1
+
+# Database exploration outputs
+bepoz-database-schema.txt
+bepoz-table-schemas.txt
+
+# User documentation (not part of framework)
+BPOS_Framework_Architecture.docx
+instructions.md
+
+# Windows system files
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
